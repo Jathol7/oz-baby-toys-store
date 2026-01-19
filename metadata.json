@@ -1,0 +1,5 @@
+{
+  "name": "OZ Baby Toys Store",
+  "description": "A comprehensive e-commerce platform for baby toys featuring a full customer storefront and a robust admin management panel, built with React and prepared for Laravel API integration.",
+  "requestFramePermissions": []
+}
