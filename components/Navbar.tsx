@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { ShoppingCart, User, Menu, X, LogOut, LayoutDashboard, Package } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, LogOut, LayoutDashboard } from 'lucide-react';
 import { UserRole } from '../types';
 
 const Navbar: React.FC = () => {
@@ -12,9 +11,16 @@ const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      // We await the fixed logout sequence
+      await logout();
+      setIsOpen(false);
+      // 'replace: true' prevents the user from clicking "Back" into the session
+      navigate('/login', { replace: true });
+    } catch (err) {
+      navigate('/login');
+    }
   };
 
   return (
@@ -68,17 +74,13 @@ const Navbar: React.FC = () => {
           </div>
 
           <div className="flex items-center md:hidden">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-slate-600 hover:text-slate-900 focus:outline-none"
-            >
+            <button onClick={() => setIsOpen(!isOpen)} className="text-slate-600 hover:text-slate-900 focus:outline-none">
               {isOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden bg-white border-t border-slate-100 py-4 px-4 space-y-4 shadow-lg">
           <Link to="/" onClick={() => setIsOpen(false)} className="block text-lg font-medium text-slate-700">Home</Link>
