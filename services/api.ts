@@ -89,17 +89,45 @@ export const authService = {
 };
 
 export const orderService = {
-  placeOrder: (data: any) => api.post('/orders', data),
-  getUserOrders: () => api.get('/orders'),
-  getAllOrders: async () => {
-     try {
-       const response = await api.get('/admin/orders');
-       return Array.isArray(response.data) ? response.data : (response.data?.orders || []);
-     } catch(e) {
-       return [];
-     }
+  placeOrder: async (orderData: any) => {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // Get existing orders or empty array
+    const existingOrders = JSON.parse(localStorage.getItem('mock_orders') || '[]');
+    
+    const newOrder = {
+      ...orderData,
+      id: Math.floor(Math.random() * 10000),
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    };
+
+    // Save back to localStorage
+    existingOrders.push(newOrder);
+    localStorage.setItem('mock_orders', JSON.stringify(existingOrders));
+
+    return { success: true, data: newOrder };
   },
-  updateStatus: (id: number, status: string) => api.patch(`/orders/${id}/status`, { status }),
+
+  // This is for the User's history
+  getUserOrders: async () => {
+    const orders = JSON.parse(localStorage.getItem('mock_orders') || '[]');
+    return orders; 
+  },
+
+  // This is for the Admin Panel
+  getAllOrders: async () => {
+    const orders = JSON.parse(localStorage.getItem('mock_orders') || '[]');
+    return orders;
+  },
+
+  updateStatus: async (id: number, status: string) => {
+    const orders = JSON.parse(localStorage.getItem('mock_orders') || '[]');
+    const updated = orders.map((o: any) => o.id === id ? { ...o, status } : o);
+    localStorage.setItem('mock_orders', JSON.stringify(updated));
+    return { success: true };
+  }
 };
 
 export default api;
