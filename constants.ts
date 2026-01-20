@@ -1,6 +1,6 @@
 
 // Update this to your real Laravel API base URL when ready
-export const API_BASE_URL = 'http://192.168.49.222:8001/api';
+export const API_BASE_URL = '/api';
 
 export const COLORS = {
   primary: '#fbbf24', // Amber 400
