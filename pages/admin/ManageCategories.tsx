@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
 import { categoryService } from '../../services/api';
 import { Category } from '../../types';
-import { Plus, Edit, Trash2, Tag, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Tag, X, Loader2 } from 'lucide-react';
 
 const ManageCategories: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -13,7 +12,8 @@ const ManageCategories: React.FC = () => {
 
   const loadCategories = async () => {
     setLoading(true);
-    const data = await categoryService.getAll();
+    // Using getAdminCategories for the admin list
+    const data = await categoryService.getAdminCategories();
     setCategories(data);
     setLoading(false);
   };
@@ -22,20 +22,35 @@ const ManageCategories: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingCategory) {
-      await categoryService.update(editingCategory.id, formData);
-    } else {
-      await categoryService.create(formData);
+    try {
+      if (editingCategory) {
+        await categoryService.update(editingCategory.id, { name: formData.name });
+      } else {
+        await categoryService.create({ name: formData.name });
+      }
+      setShowModal(false);
+      setEditingCategory(null);
+      loadCategories();
+    } catch (err) {
+      alert("Action failed. Please check if you are logged in as admin.");
     }
-    setShowModal(false);
-    setEditingCategory(null);
-    loadCategories();
   };
 
   const handleEdit = (cat: Category) => {
     setEditingCategory(cat);
-    setFormData({ name: cat.name, slug: cat.slug });
+    setFormData({ name: cat.name, slug: cat.slug || '' });
     setShowModal(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm("Are you sure? This will delete the category and may affect products.")) {
+      try {
+        await categoryService.delete(id);
+        loadCategories();
+      } catch (err) {
+        alert("Delete failed.");
+      }
+    }
   };
 
   return (
@@ -55,18 +70,23 @@ const ManageCategories: React.FC = () => {
       <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
         <div className="divide-y divide-slate-100">
           {loading ? (
-            <div className="p-8 text-center text-slate-400">Loading categories...</div>
+            <div className="p-12 text-center text-slate-400 flex flex-col items-center gap-2">
+               <Loader2 className="animate-spin text-pink-500" size={32} />
+               Loading categories...
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="p-12 text-center text-slate-400">No categories found.</div>
           ) : categories.map(cat => (
             <div key={cat.id} className="p-6 flex justify-between items-center hover:bg-slate-50 transition-colors">
               <div>
                 <h4 className="text-lg font-bold text-slate-800">{cat.name}</h4>
-                <p className="text-slate-400 text-sm">/{cat.slug}</p>
+                <p className="text-slate-400 text-sm">{cat.slug ? `/${cat.slug}` : 'No slug'}</p>
               </div>
               <div className="flex gap-2">
                 <button onClick={() => handleEdit(cat)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
                   <Edit size={20} />
                 </button>
-                <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                <button onClick={() => handleDelete(cat.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                   <Trash2 size={20} />
                 </button>
               </div>
@@ -90,17 +110,17 @@ const ManageCategories: React.FC = () => {
                 <input 
                   required 
                   type="text" 
-                  className="w-full p-3 rounded-xl border border-slate-200"
+                  autoFocus
+                  className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-pink-500"
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value, slug: e.target.value.toLowerCase().replace(/ /g, '-')})}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">URL Slug</label>
+                <label className="text-sm font-bold text-slate-400">URL Slug (Auto-generated)</label>
                 <input 
-                  required 
                   type="text" 
-                  className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50"
+                  className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed"
                   value={formData.slug}
                   readOnly
                 />

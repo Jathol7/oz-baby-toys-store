@@ -11,7 +11,6 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('auth_token');
-  // If token exists, add it. If not, don't break the request.
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -61,14 +60,27 @@ export const categoryService = {
   getAll: async () => {
     try {
       const response = await api.get('/categories?with_products=true&per_page=10');
+      // Fix: Handle nested data structure
       return response.data?.data || response.data || [];
     } catch (e) {
       return [];
     }
   },
-  getAdminCategories: () => api.get('/admin/categories?per_page=10'),
-  addAdminCategory: (data: {name: string, is_active: boolean}) => api.post('/admin/categories', data),
-  deleteAdminCategory: (id: number) => api.delete(`/admin/categories/${id}`),
+  
+  // Admin Methods
+  getAdminCategories: async () => {
+    const response = await api.get('/admin/categories?per_page=10');
+    return response.data?.data || response.data || [];
+  },
+
+  create: (data: {name: string, is_active?: boolean}) => 
+    api.post('/admin/categories', { ...data, is_active: true }),
+
+  update: (id: number, data: {name: string, is_active?: boolean}) => 
+    api.put(`/admin/categories/${id}`, data),
+
+  delete: (id: number) => 
+    api.delete(`/admin/categories/${id}`),
 };
 
 export const authService = {
@@ -78,7 +90,6 @@ export const authService = {
     try {
       return await api.post('/logout');
     } catch (error: any) {
-      // Catching 401 here prevents the "Uncaught in Promise" red text
       if (error.response?.status === 401) {
         return Promise.resolve({ data: { message: 'Logged out' } });
       }
@@ -90,37 +101,21 @@ export const authService = {
 
 export const orderService = {
   placeOrder: async (orderData: any) => {
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 800));
-
-    // Get existing orders or empty array
     const existingOrders = JSON.parse(localStorage.getItem('mock_orders') || '[]');
-    
     const newOrder = {
       ...orderData,
       id: Math.floor(Math.random() * 10000),
       status: 'pending',
       created_at: new Date().toISOString(),
     };
-
-    // Save back to localStorage
     existingOrders.push(newOrder);
     localStorage.setItem('mock_orders', JSON.stringify(existingOrders));
-
     return { success: true, data: newOrder };
   },
 
-  // This is for the User's history
-  getUserOrders: async () => {
-    const orders = JSON.parse(localStorage.getItem('mock_orders') || '[]');
-    return orders; 
-  },
-
-  // This is for the Admin Panel
-  getAllOrders: async () => {
-    const orders = JSON.parse(localStorage.getItem('mock_orders') || '[]');
-    return orders;
-  },
+  getUserOrders: async () => JSON.parse(localStorage.getItem('mock_orders') || '[]'),
+  getAllOrders: async () => JSON.parse(localStorage.getItem('mock_orders') || '[]'),
 
   updateStatus: async (id: number, status: string) => {
     const orders = JSON.parse(localStorage.getItem('mock_orders') || '[]');
